@@ -2,11 +2,8 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'ems_db',
-  password: 'root',
-  port: 5432,
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:root@localhost:5432/ems_db',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Test database connection

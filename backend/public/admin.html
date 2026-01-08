@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMS Admin - Database Migration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 4px;
+        }
+        
+        .info-box p {
+            color: #555;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            color: #d4d4d4;
+        }
+        
+        .log-success {
+            color: #4ade80;
+        }
+        
+        .log-error {
+            color: #f87171;
+        }
+        
+        .log-info {
+            color: #60a5fa;
+        }
+        
+        .log-warning {
+            color: #fbbf24;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 EMS Database Admin</h1>
+        <p class="subtitle">Database Migration & Management Tool</p>
+        
+        <div class="info-box">
+            <p><strong>⚠️ Important:</strong> This page allows you to run database migrations manually. Use this when deploying updates that require database schema changes.</p>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="runMigration()" id="migrateBtn">
+                Run Migration
+            </button>
+            <button class="btn-secondary" onclick="checkSchema()" id="checkBtn">
+                Check Schema
+            </button>
+        </div>
+        
+        <div id="logContainer" class="log-container hidden"></div>
+    </div>
+
+    <script>
+        const logContainer = document.getElementById('logContainer');
+        const migrateBtn = document.getElementById('migrateBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        
+        function addLog(message, type = 'info') {
+            logContainer.classList.remove('hidden');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function clearLogs() {
+            logContainer.innerHTML = '';
+        }
+        
+        async function runMigration() {
+            clearLogs();
+            migrateBtn.disabled = true;
+            checkBtn.disabled = true;
+            
+            migrateBtn.innerHTML = '<span class="spinner"></span>Running...';
+            
+            try {
+                addLog('🚀 Starting database migration...', 'info');
+                
+                const response = await fetch('/api/admin/migrate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog('✅ ' + data.message, 'success');
+                    if (data.details) {
+                        data.details.forEach(detail => {
+                            addLog('  → ' + detail, 'info');
+                        });
+                    }
+                } else {
+                    addLog('❌ Migration failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('❌ Error: ' + error.message, 'error');
+            } finally {
+                migrateBtn.disabled = false;
+                checkBtn.disabled = false;
+                migrateBtn.innerHTML = 'Run Migration';
+            }
+        }
+        
+        async function checkSchema() {
+            clearLogs();
+            migrateBtn.disabled = true;
+            checkBtn.disabled = true;
+            
+            checkBtn.innerHTML = '<span class="spinner"></span>Checking...';
+            
+            try {
+                addLog('🔍 Checking database schema...', 'info');
+                
+                const response = await fetch('/api/admin/check-schema');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLog('✅ Schema check complete', 'success');
+                    addLog('', 'info');
+                    addLog('📊 Payroll Table Schema:', 'info');
+                    data.schema.forEach(col => {
+                        addLog(`  → ${col.column_name}: ${col.data_type}`, 'info');
+                    });
+                } else {
+                    addLog('❌ Schema check failed: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('❌ Error: ' + error.message, 'error');
+            } finally {
+                migrateBtn.disabled = false;
+                checkBtn.disabled = false;
+                checkBtn.innerHTML = 'Check Schema';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -11,6 +11,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files from public directory
+app.use(express.static('public'));
+
 // Request logging middleware
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -26,6 +29,7 @@ const payrollRoutes = require('./routes/payroll');
 const announcementsRoutes = require('./routes/announcements');
 const dashboardRoutes = require('./routes/dashboard');
 const salaryAdvancesRoutes = require('./routes/salary_advances');
+const adminRoutes = require('./routes/admin');
 
 // API Routes
 app.use('/api/employees', employeesRoutes);
@@ -36,6 +40,7 @@ app.use('/api/payroll', payrollRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/salary-advances', salaryAdvancesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

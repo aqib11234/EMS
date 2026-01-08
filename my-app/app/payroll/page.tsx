@@ -107,9 +107,11 @@ export default function PayrollPage() {
         const emp = employees.find(e => e.id === id);
         await api.createPayrollRecord({
           employee_id: id,
-          month: month.toString(),
+          month: month,
           year,
           basic_salary: emp?.salary,
+          allowances: 0,
+          deductions: 0,
           payment_date: new Date().toISOString().split('T')[0]
         })
         const newRecords = await api.getPayrollRecords({ employee_id: id.toString(), month: month.toString(), year: year.toString() });

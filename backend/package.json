@@ -6,7 +6,9 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
-        "init-db": "node scripts/initDatabase.js"
+        "init-db": "node scripts/initDatabase.js",
+        "migrate": "node scripts/run_migrations.js",
+        "build": "node scripts/run_migrations.js"
     },
     "keywords": [
         "ems",

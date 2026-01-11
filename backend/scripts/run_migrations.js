@@ -76,6 +76,46 @@ async function runMigrations() {
             console.log(`⚠️  Unexpected data type: ${dataType}`);
         }
 
+        // Migration 2: Add leave balance columns
+        console.log('\n🔄 Checking leave balance columns...');
+        const casualCheck = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'employees' AND column_name = 'casual_leave_balance'
+        `);
+
+        const sickCheck = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'employees' AND column_name = 'sick_leave_balance'
+        `);
+
+        if (casualCheck.rows.length === 0 || sickCheck.rows.length === 0) {
+            console.log('🔄 Adding leave balance columns...');
+            await client.query('BEGIN');
+
+            if (casualCheck.rows.length === 0) {
+                await client.query(`
+                    ALTER TABLE employees 
+                    ADD COLUMN casual_leave_balance INTEGER DEFAULT 12
+                `);
+                console.log('✅ Added casual_leave_balance column');
+            }
+
+            if (sickCheck.rows.length === 0) {
+                await client.query(`
+                    ALTER TABLE employees 
+                    ADD COLUMN sick_leave_balance INTEGER DEFAULT 10
+                `);
+                console.log('✅ Added sick_leave_balance column');
+            }
+
+            await client.query('COMMIT');
+            console.log('✅ Leave balance columns migration completed');
+        } else {
+            console.log('✅ Leave balance columns already exist');
+        }
+
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('❌ Migration failed:', error);

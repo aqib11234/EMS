@@ -95,11 +95,54 @@ router.post('/migrate', async (req, res) => {
             });
         } else {
             details.push(`Unexpected data type: ${dataType}`);
-            res.status(400).json({
-                error: `Unexpected data type: ${dataType}`,
-                details
-            });
         }
+
+        // Migration 2: Add leave balance columns
+        details.push('');
+        details.push('Checking leave balance columns...');
+        const casualCheck = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'employees' AND column_name = 'casual_leave_balance'
+        `);
+
+        const sickCheck = await client.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'employees' AND column_name = 'sick_leave_balance'
+        `);
+
+        if (casualCheck.rows.length === 0 || sickCheck.rows.length === 0) {
+            details.push('Adding leave balance columns...');
+            await client.query('BEGIN');
+
+            if (casualCheck.rows.length === 0) {
+                await client.query(`
+                    ALTER TABLE employees 
+                    ADD COLUMN casual_leave_balance INTEGER DEFAULT 12
+                `);
+                details.push('✓ Added casual_leave_balance column (default: 12 days)');
+            }
+
+            if (sickCheck.rows.length === 0) {
+                await client.query(`
+                    ALTER TABLE employees 
+                    ADD COLUMN sick_leave_balance INTEGER DEFAULT 10
+                `);
+                details.push('✓ Added sick_leave_balance column (default: 10 days)');
+            }
+
+            await client.query('COMMIT');
+            details.push('Leave balance columns migration completed!');
+        } else {
+            details.push('✓ Leave balance columns already exist');
+        }
+
+        // Return success response
+        res.json({
+            message: 'All migrations completed successfully',
+            details
+        });
 
     } catch (error) {
         await client.query('ROLLBACK');

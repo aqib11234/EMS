@@ -138,6 +138,43 @@ router.post('/migrate', async (req, res) => {
             details.push('✓ Leave balance columns already exist');
         }
 
+        // Migration 3: Create salary_advances table
+        details.push('');
+        details.push('Checking salary_advances table...');
+        const tableCheck = await client.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'salary_advances'
+            );
+        `);
+
+        if (!tableCheck.rows[0].exists) {
+            details.push('Creating salary_advances table...');
+            await client.query('BEGIN');
+
+            await client.query(`
+                CREATE TABLE salary_advances (
+                    id SERIAL PRIMARY KEY,
+                    employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+                    amount DECIMAL(10, 2) NOT NULL,
+                    date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    month INTEGER NOT NULL,
+                    year INTEGER NOT NULL,
+                    deduction_type VARCHAR(20) DEFAULT 'Full',
+                    installment_amount DECIMAL(10, 2),
+                    remaining_amount DECIMAL(10, 2) NOT NULL,
+                    status VARCHAR(20) DEFAULT 'Active',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            await client.query('COMMIT');
+            details.push('✓ salary_advances table created successfully!');
+        } else {
+            details.push('✓ salary_advances table already exists');
+        }
+
         // Return success response
         res.json({
             message: 'All migrations completed successfully',
